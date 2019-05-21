@@ -138,7 +138,7 @@
   client_id=333697948788-iq181q0b8j19djgd1l8k2dspoeepqlpp.apps. googleusercontent.com
   ```
 - redirect_uri is the address that user should be redirected to from google after they give a permission to the application. 
-- whcih means entire OAuth schema could be very easily manipulated by tricking users giving their information to manipulated redirect_uri. 
+- which means entire OAuth schema could be very easily manipulated by tricking users giving their information to manipulated redirect_uri. 
 - The error we are seeing is entirely security related. 
 - Go back to console.developer.google.com. write `http://localhost:5000/auth/google/callback` at Authorized redirect URIs section. 
 - It might take some time that the uri is actually kicking in.
@@ -174,9 +174,9 @@
 - accessToken callback funtion is now our opportunity to take user information and save it to our database. 
 - When you start the server and login, we are going to get an information.
   ```js
-    access token ya29.GlsPB8L_A0gD-0wqweq2qr2rqwqweddzgU-hmU2DDrQuqwfEFWFEdffewefwefPQSlbqqrAvG34Z-qycROLKEUWaWekhH8qc_Dcm4UO3S2
-  refresh token undefined
-  Profile: { id: '56745634534535734574674',
+    access token ya29.GlsPB8L_A0gD-0wQZfWKsrpARqTdGcVrq8aVmmDzgU-hmU2DDrQuslhVsFPXzUBHEyUDdCW3pwTSCfgYPQSlbqqrAvG34Z-qycROLKEUWaWekhH8qc_Dcm4UO3S2
+    refresh token undefined
+    Profile: { id: '118141778575859650932',
     displayName: 'Jaehyun An',
     name: { familyName: 'An', givenName: 'Jaehyun' },
     emails: [ { value: 'wogus7an@gmail.com', verified: true } ],
@@ -198,7 +198,7 @@
       email_verified: true,
       locale: 'ko' } }
   ```
-- access token: It is a token that essentially allows us to reach back to google and say that we have approval to see or manipulte user's email or profile. 
+- access token: It is a token that essentially allows us to reach back to google and say that we have approval to see or manipulate user's email or profile. 
 - refresh token: It allows us to refresh the access token. Access token automatically expired after some amount of time, we can be given optionally refresh token that allows us to update the access token.
 - Profile: contains user's information.
 
@@ -234,7 +234,6 @@
     scope: ['profile', 'email']
     })
     );
-
     app.get('/auth/google/callback', passport.authenticate('google'))
   }
   ```
@@ -295,10 +294,93 @@
   - Those are JS objects that represents a single record sitting inside of a collection. 
   - `Collection -> Model Class`, `record -> Model Instance`.
 
+<h2 name="17">17. Breather and Review</h2>
 
+- Mongo / Mongoose Installed.
+- Need to be able to identify users who sign up and return to our application. We want to save the 'id' in their google profile.
+- Use Mongoose to create a new collection in Mongo called 'users' (Collections are created by making a 'model class'.).
+- When user signs in, save new record to the 'users' collection.
 
+<h2 name="18">18. Connecting Mongoose to Mongo</h2>
 
+- In server directory, `npm install --save mongoose`
+- Inside of index.js file
+  ```js
+  const keys = require('./config/keys');
+  const mongoose = require('mongoose');
 
+  mongoose.connect(keys.mongoURI)
+  ```
+- Start a sever 
 
+<h2 name="19">19. Mongoose Model Classes</h2>
 
+- Now we are going to create Model Class which represents a huge collection of records.
+- We are going to create a folder name `models` inside of server directory and the folder contains file name User.js that has all the different model or model classes that we create using mongoose. 
+- User.js
+  ```js
+  const mongoose = require('mongoose');
+  const Schema = mongoose.Schema;
+  // using Schema object to create a shcema for a new collection
+  // Schema describes what every individual record is going to look like
+  const userSchema = new Schema({
+    googleId: String
+  });
+  ```
+- To create actual model class and tell mongoose it needs to be aware that the new collection of userSchema has been created, 
+set mongoose.model
+  ```js
+  // It creates a model class
+  // the very first argument is a name of the collection
+  // second argument is userSchema 
+  mongoose.model('users', userSchema)
+  ```
 
+<h2 name="20">20. Saving Model Instances</h2>
+
+- We were going to export mongoose model classes and import it into passport.js inside of passport.use but we are not going to use require statment and there is a very good reason for that.
+- If we export and import model class in multiple places, mongoose will think that you are attempting to call multiple model classes then it will throw an error. 
+- So we are going to import mongoose and to get accessed to that  user model class. 
+  ```js
+  // inside of passport.js
+  const User = mongoose.model('users');
+  ```
+- `mongoose.model('users', userSchema)` inside of User.js file loads schema into mongoose.
+- One argument means we are trying to fetch something out of mongoose, two arguments mean we are trying to blow something into it. 
+- Then we are going to create an instance inside of `passport.use`.
+  ```js
+  const User = mongoose.model('users');
+
+  passport.use(new GoogleStrategy({
+    clientID: keys.googleClientID,
+    clientSecret: keys.googleClientSecret,
+    callbackURL: '/auth/google/callback'
+    },(accessToken, refreshToken, profile, done) => {
+      // new instance of a user 
+      new User ({ googleId: profile.id }).save();
+    })
+  );
+  ```
+- Without function `.save()`, new instance of a user is not stored inside of a database. 
+- But we are going to get an error saying `Schema hasn't been registered for model "users".`.
+- It appears that mongoose thinks that we have not yet loaded a schema into mongoose that describes users. 
+- This is a execution problem error.
+  ```js
+  const express = require('express');
+  const keys = require('./config/keys');
+  require('./services/passport');
+  const mongoose = require('mongoose');
+  // User file : we initially define a model class
+  require('./models/User'); 
+  ```
+- We are attempting use a user model before we actually defined it.
+- So then change the order of statment. 
+  ```js
+  const express = require('express');
+  const keys = require('./config/keys');
+  const mongoose = require('mongoose');
+  // User file : we initially define a model class
+  require('./models/User'); 
+  require('./services/passport');
+  ```
+- The order of require statment can result an error 
