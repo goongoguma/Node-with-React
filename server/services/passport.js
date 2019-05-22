@@ -3,15 +3,35 @@ const GoogleStrategy = require('passport-google-oauth20');
 const keys = require('../config/keys');
 const mongoose = require('mongoose');
 
-// pulling out model out of mongoose using single argument
 const User = mongoose.model('users');
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  User.findById(id)
+  .then(user => {
+    done(null, user);
+  })
+})
 
 passport.use(new GoogleStrategy({
   clientID: keys.googleClientID,
   clientSecret: keys.googleClientSecret,
   callbackURL: '/auth/google/callback'
   },(accessToken, refreshToken, profile, done) => {
-    // getting access mongoose model
-    new User({ googleId: profile.id }).save();
+    // anytime we reach out to our database, we are initiating asynchronous action
+    User.findOne({ googleId: profile.id })
+    .then((existingUser) => {
+      if (existingUser) {
+        done(null, existingUser);
+      } else {
+        // create a new instance
+        new User({ googleId: profile.id })
+        .save()
+        .then(user => done(null, user))
+      }
+    });
   })
 );
