@@ -321,7 +321,7 @@
   ```js
   const mongoose = require('mongoose');
   const Schema = mongoose.Schema;
-  // using Schema object to create a shcema for a new collection
+  // using Schema object to create a schema for a new collection
   // Schema describes what every individual record is going to look like
   const userSchema = new Schema({
     googleId: String
@@ -350,7 +350,7 @@ set mongoose.model
 - One argument means we are trying to fetch something out of mongoose, two arguments mean we are trying to blow something into it. 
 - Then we are going to create an instance inside of `passport.use`.
   ```js
-  // pulling out model out of mongoose using single argument
+  // pulling model out of mongoose using single argument
   const User = mongoose.model('users');
 
   passport.use(new GoogleStrategy({
@@ -443,6 +443,9 @@ set mongoose.model
       User.findOne({ googleId: profile.id })
       .then((existingUser) => {
         if (existingUser) {
+          // done function has two arguemnts
+          // first argument would be error object
+          // second argument would be the user record
           done(null, existingUser);
         } else {
           // create a new instance
@@ -457,8 +460,9 @@ set mongoose.model
 
 <h2 name="23">23. Encoding Users</h2>
 
+- We have to somehow take a user data from MongoDB and generates some identifying piece of information and pass it to a user in a cookie then be provided in any follow-up request back to our server.
 - We are going to define a function called `serializeUser`.
-- It is going to be automatically called by passport with user model that we just fetched. 
+- It is going to be automatically called by passport with user model (user data) that we just fetched. 
 - We are going to use that user model, generates the identifying piece of information. 
 - After that, we pass that identifying piece of information back to passport and passport automatically stuff that little token into the user's cookie for us.
 - When a user asks us a list of post, they are going to make some request to the browser back to our server.
@@ -475,6 +479,7 @@ set mongoose.model
     done(null, user.id);
   })
   ```
+- 사용자가 서버에 구글 프로필과 함께 요청을 보내면 서버에서는 구글 프로필 아이디를 확인 후 토큰을 생성한다. 그 후에 passport 라이브러리의 serializeUser를 사용해서 고유의 확인 정보를 생성한 뒤 쿠키에 담아 유저에게 보내준다. 
 
 <h2 name="24">24. Deserialize User</h2>
 
@@ -533,10 +538,10 @@ set mongoose.model
 - How the authentication is going to work?
   - Request comes in
   - Request
-  - Cookie-Session : Extracts cookie data
+  - Cookie-Session : Extracts cookie data and dencrypt data inside there.
   - Passport : Pulls user id out of cookie data
   - Deserialize User : Function we write to turn user id into a user
-  - User model instance added to req object as 'req.user'
+  - User model instance added to req object as 'req.user'.
   - Request sent to route handler
 - We are going to look at `req.user` property and if our user model exist on that thing, that means that authentication must be working inside of our app.
 - Create a new route inside of authRoutes file
@@ -564,7 +569,7 @@ set mongoose.model
   ```js
   app.use(
     cookieSession({
-      maxAge: 30 * 24 * 60 * 60 *1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       keys: [keys.cookieKey]
     })
   );
@@ -574,7 +579,9 @@ set mongoose.model
 - On each `app.use()` calls, we passed in some different object to them.
 - Each of `app.use()` calls are wiring up what are refered to as middleware inside of our application.
 - Middleware is a small function that can be used to modify incoming request to our app before they are sent off to route handler. 
+- Rather than adding some logic at the top of every single route handler, we can instead just wire up middlewares one time and they will be automatically used for every request comes into our application. 
 - reference: https://www.draw.io/#HStephenGrider%2FFullstackReactCode%2Fmaster%2Fdiagrams%2F02%2Fdiagrams.xml (004 slide)
+- This is a general architecture of express.
 - What cookieSession is doing for us? and how it relates to a passport?
 - Cookie-Session library extracts the data out of the cookie and assignes to `req.session` property.
   ```js
@@ -595,15 +602,75 @@ set mongoose.model
 - And it is identical with id in users record. 
 - Therefore, Cookie-Session processes the incoming request, populating that `req.session` property and then passport accesses that data that exists `req.session`.
 
-<!-- <h2 name="29">29. Dev vs Prod Keys</h2>
+<h2 name="29">29. Dev vs Prod Keys</h2>
 
 - The first reason we are going to split off having two separate of sets here(Development and Production), it allows us to be a little bit more relax with our development credential. 
 - Second reason is that we can have two separate MongoDB.
 - Whenever we deploy to application to production, we want to have a clean database. Existing in production that has only are users data. And we always treat that absolute pristine data that we never ever manually mess around with.
 - But in the development world, if we have a separate database, we can decide to add records, delete records, we can change as many times as we want without any fear of breaking any data. 
-- We are going to set up separate MongoDB, Google API and Cookie Key. -->
+- We are going to set up separate MongoDB, Google API and Cookie Key.
 
-<h2 name="29">29. Running the Client and Server</h2>
+<h2 name="30">30. Determining Environment</h2>
+
+- In keys.js file, we are going to put some logic whether or not we are in production or development environment.
+- When you deploy a server to heroku, there is an existing environment variable called `NODE_ENV`.
+- This tells us what environment we are in.
+- (We did the same thing inside of index.js file)
+  ```js
+  const PORT = process.env.PORT || 5000
+  app.listen(PORT);
+  ```
+  ```js
+  // keys.js
+  if (process.env.NODE_ENV === 'production') {
+    // we are in production - return the prod set of keys
+  } else {
+    // we are in development - return the dev keys
+  }
+  ```
+
+<h2 name="31">31. Version Control Scheme</h2>
+
+  ```js
+  // prod.js
+  module.exports = {
+    googleClientID: process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    mongoURI: process.env.MONGO_URI,
+    cookieKey: process.env.COOKIE_KEY
+  };
+
+  // keys.js
+  if (process.env.NODE_ENV === 'production') {
+    // we are in production - return the prod set of keys
+    module.exports = require('./prod');
+  } else {
+    // we are in development - return the dev keys
+    module.exports = require('./dev');
+  }
+  ```
+
+<h2 name="32">32. Fixing Heroku Proxy Issues</h2>
+
+- After we push to heroku, and access to the url (https://enigmatic-tundra-22195.herokuapp.com/auth/google), we will get an error saying 
+  ```js
+  <!-- The redirect URI in the request, http://enigmatic-tundra-22195.herokuapp.com/auth/google/callback, does not match the ones authorized for the OAuth client. -->
+  ```
+- In order to make sure that traffic from our browser is routed to the correct server, heroku uses Proxy to make sure that the traffic from our browser is routed to the correct server on its internal network.
+- The reason that google strategy is calculating that domain incorrectly is that by default the strategy assumes that if our request from the browser ever went through any type of proxy then the request should no longer be https.
+- Because it inherently does not want to trust requests that come through a proxy.
+- One possible solution is add one configuration option to our Google strategy to tell it to trust any proxy that the browser encounters between our server and the original request.
+- Add `proxy: true`
+  ```js
+  passport.use(new GoogleStrategy({
+    clientID: keys.googleClientID,
+    clientSecret: keys.googleClientSecret,
+    callbackURL: '/auth/google/callback',
+    proxy: true
+    }
+  ```
+
+<h2 name="33">33. Running the Client and Server</h2>
 
 - How can I make server and client work together?
 - Install library concurrently
@@ -617,26 +684,49 @@ set mongoose.model
   },
   ```
 
-<h2 name="30">30. Routing Stumbling Block</h2>
+<h2 name="34">34. Async/Await Syntax</h2>
 
-- We know that our express server has the oauth flow available '/api/current_user'.
-- We can connect to express server using a tag.
+- Refactor function in passport.js 
+
   ```js
-   <a href="http://localhost:5000/api/current_user">Sign In With Google</a>
-   ```
-- But important thing is this works in only local machine.
-- Therefore we have to make the address flexible.
-- In order to do that, go to package.json file inside of client folder and add proxy
-  ```js
-  "proxy": {
-      "/auth/google": {
-        "target": "http://localhost:5000"
-      }
+  // original
+  passport.use(new GoogleStrategy({
+    clientID: keys.googleClientID,
+    clientSecret: keys.googleClientSecret,
+    callbackURL: '/auth/google/callback',
+    proxy: true
     },
-    ```
-- When we start the server we will get an error saying
-  ```js
-  When specified, "proxy" in package.json must be a string.
-  Instead, the type of "proxy" was "object".
-  Either remove "proxy" from package.json, or make it a string.
+    (accessToken, refreshToken, profile, done) => {
+      User.findOne({ googleId: profile.id })
+      .then((existingUser) => {
+        if (existingUser) {
+          done(null, existingUser);
+        } else {
+          new User({ googleId: profile.id })
+          .save()
+          .then(user => done(null, user))
+        }
+      });
+    })
+  );
+
+  // Refactoring
+  passport.use(new GoogleStrategy({
+    clientID: keys.googleClientID,
+    clientSecret: keys.googleClientSecret,
+    callbackURL: '/auth/google/callback',
+    proxy: true
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      // anytime we reach out to our database, we are initiating asynchronous action
+      const existingUser = await User.findOne({ googleId: profile.id })
+      
+      if (existingUser) {
+        return done(null, existingUser);
+      } 
+        // create a new instance
+        const user = await new User({ googleId: profile.id }).save();
+        done(null, user)
+    })
+  );
   ```
