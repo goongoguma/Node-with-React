@@ -1,3 +1,41 @@
+## Note Index
+
+- [1. Nodejs와 Express의 관계](#1)
+- [2. Express 라우트](#2)
+- [3. Heroku 기본셋팅 ](#3)
+- [4. Passportjs에 관해서](#4)
+- [5. Passportjs 설치](#5)
+- [6. 구글 OAuth api 셋팅하기](#6)
+- [7. API키 보안방법](#7)
+- [8. Passportjs의 GoogleStrategy 사용하기](#8)
+- [9. 구글 OAuth 라우트 해주기](#9)
+- [10. 구글 redirect 에러 해결하기](#10)
+- [11. callback 라우트 설정하기](#11)
+- [12. callback을 이용해 구글 토큰과 프로필 확인하기](#12)
+- [13. 코드 refactor 해주식](#13)
+- [14. Authentication의 단계](#14)
+- [15. OAuth로 로그인 하는 방법](#15)
+- [16. MongoDB 소개](#16)
+- [17. MongoDB 사용법](#17)
+- [18. MongoDB와 Mongoose 연결하기](#18)
+- [19. Model class 만들기](#19)
+- [20. Model instance 만들기](#20)
+- [21. Mongoose를 이용해 중복처리하기](#21)
+- [22. Passportjs의 done 함수 사용해 마무리](#22)
+- [23. serializeUser 함수를 사용해 유저정보 인코딩하기](#23)
+- [24. deserializeUser 함수를 사용해 유저정보 디코딩하기](#24)
+- [25. cookie-session 라이브러리 사용해 쿠키 조작하기](#25)
+- [26. 라우트를 만들어 authentication 테스트하기](#26)
+- [27. 사용자 로그아웃 라우터 만들기](#27)
+- [28. app.use()와 cookie-session에 관하여](#28)
+- [29. 개발 및 배포 환경 설정하기 1](#29)
+- [30. 개발 및 배포 환경 설정하기 2](#30)
+- [31. Version Control Scheme](#31)
+- [32. proxy 옵션으로 heroku 에러 해결하기](#32)
+- [33. concurrently 라이브러리로 클라이언트와 서버 동시에 실행하기](#33)
+- [34. Passportjs 함수들을 Async/Await으로 만들어주기](#34)
+
+
 <h2 name="1">1. Relationship Between Node and Express</h2>
 
 - Node
@@ -71,6 +109,7 @@
 
 - Before we make use of GoogleStrategy, we have to give it two important options. A client id and a client secret.
 - Both are provided to us directly google's oauth service. 
+- 예전에 만들어놨던 Boards api 재활용 
 
 <h2 name="7">7. Securing API Keys</h2>
 
@@ -278,7 +317,7 @@
 
 <h2 name="16">16. Introducing to MongoDB</h2>
 
-- MontoDB
+- MongoDB
   - MongoDB internally stores records into different collections. Every different collections seats inside of database can have many different records.
   - One MongoDB instance, we might have collection of users, collection of posts, collection of payments.
   - Inside of a single collection, we have many different individual records.
@@ -654,7 +693,7 @@ set mongoose.model
 
 - After we push to heroku, and access to the url (https://enigmatic-tundra-22195.herokuapp.com/auth/google), we will get an error saying 
   ```js
-  <!-- The redirect URI in the request, http://enigmatic-tundra-22195.herokuapp.com/auth/google/callback, does not match the ones authorized for the OAuth client. -->
+  The redirect URI in the request, http://enigmatic-tundra-22195.herokuapp.com/auth/google/callback, does not match the ones authorized for the OAuth client.
   ```
 - In order to make sure that traffic from our browser is routed to the correct server, heroku uses Proxy to make sure that the traffic from our browser is routed to the correct server on its internal network.
 - The reason that google strategy is calculating that domain incorrectly is that by default the strategy assumes that if our request from the browser ever went through any type of proxy then the request should no longer be https.
